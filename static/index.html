@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nysa - WiFi Setup</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SF Mono','Cascadia Code','Consolas',monospace;background:#000;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.c{border:1px solid #333;padding:2rem;max-width:400px;width:100%}
+h1{font-size:1.5rem;margin-bottom:.25rem}
+.sub{color:#666;font-size:.75rem;margin-bottom:1.5rem}
+.note{border-left:2px solid #333;padding:.5rem .75rem;margin-bottom:1.5rem;font-size:.75rem;color:#999}
+.fg{margin-bottom:1rem}
+label{display:block;color:#999;margin-bottom:.25rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+input{width:100%;padding:.5rem;background:#111;border:1px solid #333;color:#e5e5e5;font-family:inherit;font-size:.875rem}
+input:focus{outline:none;border-color:#e5e5e5}
+.pw{position:relative}
+.pw button{position:absolute;right:0;top:0;height:100%;background:none;border:none;border-left:1px solid #333;color:#666;cursor:pointer;padding:0 .5rem;font-family:inherit;font-size:.75rem}
+.pw button:hover{color:#e5e5e5}
+button[type=submit]{width:100%;padding:.625rem;background:#e5e5e5;color:#000;border:none;font-family:inherit;font-size:.875rem;font-weight:700;cursor:pointer;margin-top:.5rem}
+button[type=submit]:hover{background:#fff}
+button[type=submit]:disabled{opacity:.4;cursor:not-allowed}
+#status{margin-top:1rem;padding:.5rem;font-size:.75rem;display:none;border:1px solid #333}
+#status.ok{display:block;border-color:#2d5a2d;color:#6fbf6f}
+#status.err{display:block;border-color:#5a2d2d;color:#bf6f6f}
+#status.load{display:block;color:#999}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>nysa</h1>
+<p class="sub">wifi setup</p>
+<div class="note">Enter your WiFi credentials. The device will reboot and connect automatically.</div>
+<form id="f">
+<div class="fg">
+<label for="s">SSID</label>
+<input type="text" id="s" placeholder="network name" required autocomplete="off">
+</div>
+<div class="fg">
+<label for="p">Password</label>
+<div class="pw">
+<input type="password" id="p" placeholder="password" required>
+<button type="button" onclick="let i=document.getElementById('p');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'show':'hide'">show</button>
+</div>
+</div>
+<button type="submit" id="b">connect</button>
+</form>
+<div id="status"></div>
+</div>
+<script>
+document.getElementById('f').onsubmit=async e=>{
+e.preventDefault();
+const s=document.getElementById('s').value.trim(),p=document.getElementById('p').value,
+st=document.getElementById('status'),b=document.getElementById('b');
+if(!s){st.className='err';st.textContent='enter a network name';return}
+st.className='load';st.textContent='connecting...';b.disabled=true;
+try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ssid:s,password:p})});
+if(r.ok){st.className='ok';st.textContent='saved. rebooting...';setTimeout(()=>location.href='/',5000)}
+else{throw new Error(await r.text()||'failed')}}
+catch(e){st.className='err';st.textContent=e.message;b.disabled=false}};
+</script>
+</body>
+</html>

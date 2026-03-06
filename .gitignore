@@ -1,0 +1,29 @@
+# Build artifacts
+/target
+build/
+*.bin
+*.elf
+**/*.rs.bk
+
+# ESP-IDF build cache
+.embuild/
+sdkconfig
+sdkconfig.old
+
+# Tool-specific local data
+.claude/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploaded files
+upload/**
+!upload/.gitkeep
+
+# OS files
+Thumbs.db
+.DS_Store

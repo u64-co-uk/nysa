@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nysa</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'SF Mono','Cascadia Code','Consolas',monospace;background:#000;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.c{border:1px solid #333;padding:2rem;max-width:400px;width:100%}
+h1{font-size:1.5rem;margin-bottom:.25rem}
+.sub{color:#666;font-size:.75rem;margin-bottom:1.5rem}
+.badge{display:inline-block;font-size:.625rem;text-transform:uppercase;letter-spacing:.1em;padding:.125rem .375rem;border:1px solid #2d5a2d;color:#6fbf6f;margin-bottom:1.5rem}
+.err-badge{border-color:#5a2d2d;color:#bf6f6f}
+.info{border:1px solid #333;margin-bottom:1.5rem}
+.row{display:flex;justify-content:space-between;padding:.5rem .75rem;border-bottom:1px solid #222;font-size:.75rem}
+.row:last-child{border-bottom:none}
+.lbl{color:#666}
+.val{color:#e5e5e5}
+.fg{margin-bottom:1rem}
+label{display:block;color:#999;margin-bottom:.25rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+input{width:100%;padding:.5rem;background:#111;border:1px solid #333;color:#e5e5e5;font-family:inherit;font-size:.875rem}
+input:focus{outline:none;border-color:#e5e5e5}
+.actions{display:flex;gap:.5rem;margin-top:1.5rem}
+.btn{flex:1;padding:.5rem;border:1px solid #333;background:none;color:#999;font-family:inherit;font-size:.75rem;cursor:pointer;text-align:center;text-decoration:none}
+.btn:hover{color:#e5e5e5;border-color:#e5e5e5}
+.btn-p{background:#e5e5e5;color:#000;border-color:#e5e5e5}
+.btn-p:hover{background:#fff}
+.ota{border:1px solid #333;padding:.75rem;margin-top:1.5rem}
+.ota-title{font-size:.75rem;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+#ota-status{font-size:.75rem;margin-top:.5rem;display:none}
+#ota-status.ok{display:block;color:#6fbf6f}
+#ota-status.err{display:block;color:#bf6f6f}
+#ota-status.load{display:block;color:#999}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>nysa</h1>
+<p class="sub">device status</p>
+<div class="fg">
+<label for="k">api key</label>
+<input type="password" id="k" placeholder="X-OTA-Key" autocomplete="off">
+</div>
+<div id="badge" class="badge">connecting...</div>
+<div class="info">
+<div class="row"><span class="lbl">network</span><span class="val" id="net">&mdash;</span></div>
+<div class="row"><span class="lbl">ip</span><span class="val" id="ip">&mdash;</span></div>
+<div class="row"><span class="lbl">uptime</span><span class="val" id="up">&mdash;</span></div>
+</div>
+<div class="actions">
+<button class="btn" onclick="forget()">forget wifi</button>
+<button class="btn btn-p" onclick="document.getElementById('ota-file').click()">update files</button>
+<input type="file" id="ota-file" style="display:none" onchange="upload(this)">
+</div>
+<div class="ota" id="ota-section" style="display:none">
+<div class="ota-title">ota update</div>
+<div id="ota-name"></div>
+<div id="ota-status"></div>
+</div>
+</div>
+<script>
+function key(){return document.getElementById('k').value}
+function hdr(){return{'X-OTA-Key':key()}}
+async function load(){
+if(!key())return;
+try{const r=await fetch('/api/status',{headers:hdr()});
+const b=document.getElementById('badge');
+if(r.status===401){b.textContent='unauthorized';b.className='badge err-badge';return}
+if(r.ok){const d=await r.json();b.textContent='connected';b.className='badge';
+document.getElementById('net').textContent=d.ssid||'?';
+document.getElementById('ip').textContent=d.ip||'?';
+document.getElementById('up').textContent=fmt(d.uptime)}}catch(e){}}
+function fmt(s){if(!s)return'\u2014';const d=s/86400|0,h=s%86400/3600|0,m=s%3600/60|0;
+return d>0?d+'d '+h+'h':h>0?h+'h '+m+'m':m+'m'}
+async function forget(){if(!key()){alert('Enter API key first.');return}
+if(!confirm('Forget WiFi and restart in setup mode?'))return;
+try{const r=await fetch('/api/wifi',{method:'DELETE',headers:hdr()});
+if(r.status===401){alert('Unauthorized.');return}
+alert(r.ok?'Cleared. Restarting...':'Failed to clear.')}catch(e){alert('Error: '+e.message)}}
+async function upload(input){
+if(!key()){alert('Enter API key first.');input.value='';return}
+const f=input.files[0];if(!f){return}
+const sec=document.getElementById('ota-section');
+const st=document.getElementById('ota-status');
+const nm=document.getElementById('ota-name');
+sec.style.display='block';
+nm.textContent=f.name+' ('+Math.round(f.size/1024)+'KB)';
+st.className='load';st.textContent='uploading...';
+try{const r=await fetch('/ota/fs',{method:'POST',headers:{'X-OTA-Key':key()},body:f});
+if(r.status===401){st.className='err';st.textContent='unauthorized';return}
+if(r.ok){st.className='ok';st.textContent='updated. rebooting...'}
+else{st.className='err';st.textContent=await r.text()||'upload failed'}}
+catch(e){st.className='err';st.textContent=e.message}
+input.value=''}
+document.getElementById('k').addEventListener('input',load);
+setInterval(load,30000);
+</script>
+</body>
+</html>
