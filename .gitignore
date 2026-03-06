@@ -4,6 +4,7 @@ build/
 *.bin
 *.elf
 **/*.rs.bk
+nysa-utils/target
 
 # ESP-IDF build cache
 .embuild/
